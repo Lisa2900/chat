@@ -1,41 +1,35 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { View, TextInput, Button, Text, Alert } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { auth } from '../firebase';
 import { createUserWithEmailAndPassword, signInWithEmailAndPassword } from 'firebase/auth';
+import { doc, setDoc } from 'firebase/firestore';
+import { db } from '../firebase'; // Asegúrate de que tu importación sea correcta
 
 const AuthScreen = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [isSignUp, setIsSignUp] = useState(false); // Alternar entre registro e inicio de sesión
+  const [isSignUp, setIsSignUp] = useState(false);
   const navigation = useNavigation();
 
-  // Manejar autenticación (registro o inicio de sesión)
   const handleAuth = async () => {
     try {
       if (isSignUp) {
-        // Registro de usuario
         const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-        Alert.alert("Registro exitoso", `Bienvenido ${userCredential.user.email}`);
+        // Guardar el correo electrónico en Firestore
+        const userId = userCredential.user.uid;
+        await setDoc(doc(db, "users", userId), {
+          email: email,
+        });
+        Alert.alert("Registro exitoso", "Bienvenido!");
       } else {
-        // Inicio de sesión
-        const userCredential = await signInWithEmailAndPassword(auth, email, password);
-        Alert.alert("Inicio de sesión exitoso", `Bienvenido de nuevo ${userCredential.user.email}`);
+        await signInWithEmailAndPassword(auth, email, password);
+        Alert.alert("Inicio de sesión exitoso", "Bienvenido de nuevo!");
       }
     } catch (error) {
       Alert.alert("Error", error.message);
     }
   };
-
-  // Redirigir a la sala de chat si el usuario está autenticado
-  useEffect(() => {
-    const unsubscribe = auth.onAuthStateChanged(user => {
-      if (user) {
-        navigation.replace("ChatRoom"); // Reemplaza la pantalla de autenticación con la de chat
-      }
-    });
-    return unsubscribe;
-  }, [navigation]);
 
   return (
     <View>
